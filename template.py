@@ -40,9 +40,9 @@ class App(QMainWindow):
 
         img = cv2.imread(pic_name, cv2.IMREAD_COLOR)
 
-        histograms = self.calcHistogram(img)
+        self.input_histograms = self.calcHistogram(img)
 
-        hist_plot = PlotCanvas(histograms[1:][:], width=5, height=4)
+        hist_plot = PlotCanvas(self.input_histograms, width=5, height=4)
 
         self.vbox1.addWidget(hist_plot)
 
@@ -59,9 +59,9 @@ class App(QMainWindow):
 
         img = cv2.imread(pic_name, cv2.IMREAD_COLOR)
 
-        histograms = self.calcHistogram(img)
+        self.target_histograms = self.calcHistogram(img)
 
-        hist_plot = PlotCanvas(histograms[1:][:], width=5, height=4)
+        hist_plot = PlotCanvas(self.target_histograms, width=5, height=4)
 
         self.vbox2.addWidget(hist_plot)
 
@@ -87,8 +87,11 @@ class App(QMainWindow):
         result_box = QLabel()
 
         input_box.setText("Input")
+        input_box.setAlignment(Qt.AlignTop)
         target_box.setText("Target")
+        target_box.setAlignment(Qt.AlignTop)
         result_box.setText("Result")
+        result_box.setAlignment(Qt.AlignTop)
 
         self.vbox1.addWidget(input_box)
         self.vbox2.addWidget(target_box)
@@ -147,6 +150,51 @@ class App(QMainWindow):
             msg.setText("Error: Load target image")
             msg.exec_()
 
+        cumulative_input_red = np.cumsum(self.input_histograms[0])
+        cumulative_input_green = np.cumsum(self.input_histograms[1])
+        cumulative_input_blue = np.cumsum(self.input_histograms[2])
+
+        cumulative_target_red = np.cumsum(self.target_histograms[0])
+        cumulative_target_green = np.cumsum(self.target_histograms[1])
+        cumulative_target_blue = np.cumsum(self.target_histograms[2])
+
+        LUT = np.zeros((256, 3))
+        g_j = 0
+        for g_i in range(255):
+            while cumulative_target_red[g_j] < cumulative_input_red[g_i] and g_j < 255:
+                g_j += 1
+            LUT[g_i][0] = g_j
+        g_j = 0
+        for g_i in range(255):
+            while cumulative_target_green[g_j] < cumulative_input_green[g_i] and g_j < 255:
+                g_j += 1
+            LUT[g_i][1] = g_j
+        g_j = 0
+        for g_i in range(255):
+            while cumulative_target_blue[g_j] < cumulative_input_blue[g_i] and g_j < 255:
+                g_j += 1
+            LUT[g_i][2] = g_j
+
+        pic_name = "color2.png"
+        img = cv2.imread(pic_name, cv2.IMREAD_COLOR)
+
+        for i in range(len(img[:])):
+            for j in range(len(img[0])):
+                for r in range(len(img[0][0])):
+                    img[i][j][r] = LUT[img[i][j][r]][r]
+
+        result_pic = QLabel()
+        self.vbox3.addWidget(result_pic)
+        cv2.imwrite("result.png", img)
+        result_pic.setPixmap(QPixmap("result.png"))
+
+        self.result_histograms = self.calcHistogram(img)
+
+        hist_plot = PlotCanvas(self.result_histograms, width=5, height=4)
+
+        self.vbox3.addWidget(hist_plot)
+
+
 
     def calcHistogram(self, I):
         # Calculate histogram
@@ -158,7 +206,7 @@ class App(QMainWindow):
             for j in range(len(I[0])):
                 for r in range(len(I[0][0])):
                     x[r+1][I[i][j][r]] += 1
-        return x
+        return x[1:][:]
 
 
 class PlotCanvas(FigureCanvas):
