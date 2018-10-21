@@ -149,14 +149,14 @@ class App(QMainWindow):
 
         self.LUT = np.zeros((256, 3))
 
-        self.matchHistogram(np.cumsum(self.input_histograms[0]), np.cumsum(self.target_histograms[0]), 0)
-        # cumulative sums of red band of image
+        self.lookupTable(np.cumsum(self.input_histograms[0]), np.cumsum(self.target_histograms[0]), 0)
+        # create lookup table for red band of image
 
-        self.matchHistogram(np.cumsum(self.input_histograms[1]), np.cumsum(self.target_histograms[1]), 1)
-        # cumulative sums of green band of image
+        self.lookupTable(np.cumsum(self.input_histograms[1]), np.cumsum(self.target_histograms[1]), 1)
+        # create lookup table for green band of image
 
-        self.matchHistogram(np.cumsum(self.input_histograms[2]), np.cumsum(self.target_histograms[2]), 2)
-        # cumulative sums of blue band of image
+        self.lookupTable(np.cumsum(self.input_histograms[2]), np.cumsum(self.target_histograms[2]), 2)
+        # create lookup table for blue band of image
 
         pic_name = "color2.png"
         img = cv2.imread(pic_name, cv2.IMREAD_COLOR)
@@ -177,7 +177,7 @@ class App(QMainWindow):
 
         self.vbox3.addWidget(hist_plot)
 
-    def matchHistogram(self, input_cumulative, target_cumulative, color):
+    def lookupTable(self, input_cumulative, target_cumulative, color):
 
         g_j = 0
         for g_i in range(255):
@@ -185,18 +185,16 @@ class App(QMainWindow):
                 g_j += 1
             self.LUT[g_i][color] = g_j
 
-
     def calcHistogram(self, I):
         # Calculate histogram
-        x = np.row_stack((np.arange(256), np.zeros((3, 256), dtype=int)))
-        # first row is 0,1,2,....255
-        # other rows are for red, green and blue
+        x = np.zeros((3, 256))
+        # for red, green and blue
 
         for i in range(len(I[:])):
             for j in range(len(I[0])):
                 for r in range(len(I[0][0])):
-                    x[r+1][I[i][j][r]] += 1
-        return x[1:][:]
+                    x[r][I[i][j][r]] += 1
+        return x
 
 
 class PlotCanvas(FigureCanvas):
