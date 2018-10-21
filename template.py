@@ -12,8 +12,8 @@ import numpy as np
 import cv2
 
 ##########################################
-## Do not forget to delete "return NotImplementedError"
-## while implementing a function
+## CANER IŞIK
+## 150130023
 ########################################
 
 
@@ -67,7 +67,7 @@ class App(QMainWindow):
 
         self.targetLoaded = True
 
-    def exitdeneme(self):
+    def exitApp(self):
         qApp.quit()
 
     def initUI(self):
@@ -115,7 +115,7 @@ class App(QMainWindow):
         open_target.triggered.connect(lambda: self.openTargetImage())
 
         exit_app = QAction('Exit', self)
-        exit_app.triggered.connect(self.exitdeneme)
+        exit_app.triggered.connect(self.exitApp)
 
         histogram_equalize = QAction('Equalize Histogram', self)
         histogram_equalize.triggered.connect(lambda: self.histogramButtonClicked())
@@ -130,9 +130,6 @@ class App(QMainWindow):
         self.show()
 
     def histogramButtonClicked(self):
-        '''target_pic = QLabel()
-        self.vbox3.addWidget(target_pic)
-        target_pic.setPixmap(QPixmap("color2.png"))'''
 
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
@@ -150,30 +147,16 @@ class App(QMainWindow):
             msg.setText("Error: Load target image")
             msg.exec_()
 
-        cumulative_input_red = np.cumsum(self.input_histograms[0])
-        cumulative_input_green = np.cumsum(self.input_histograms[1])
-        cumulative_input_blue = np.cumsum(self.input_histograms[2])
+        self.LUT = np.zeros((256, 3))
 
-        cumulative_target_red = np.cumsum(self.target_histograms[0])
-        cumulative_target_green = np.cumsum(self.target_histograms[1])
-        cumulative_target_blue = np.cumsum(self.target_histograms[2])
+        self.matchHistogram(np.cumsum(self.input_histograms[0]), np.cumsum(self.target_histograms[0]), 0)
+        # cumulative sums of red band of image
 
-        LUT = np.zeros((256, 3))
-        g_j = 0
-        for g_i in range(255):
-            while cumulative_target_red[g_j] < cumulative_input_red[g_i] and g_j < 255:
-                g_j += 1
-            LUT[g_i][0] = g_j
-        g_j = 0
-        for g_i in range(255):
-            while cumulative_target_green[g_j] < cumulative_input_green[g_i] and g_j < 255:
-                g_j += 1
-            LUT[g_i][1] = g_j
-        g_j = 0
-        for g_i in range(255):
-            while cumulative_target_blue[g_j] < cumulative_input_blue[g_i] and g_j < 255:
-                g_j += 1
-            LUT[g_i][2] = g_j
+        self.matchHistogram(np.cumsum(self.input_histograms[1]), np.cumsum(self.target_histograms[1]), 1)
+        # cumulative sums of green band of image
+
+        self.matchHistogram(np.cumsum(self.input_histograms[2]), np.cumsum(self.target_histograms[2]), 2)
+        # cumulative sums of blue band of image
 
         pic_name = "color2.png"
         img = cv2.imread(pic_name, cv2.IMREAD_COLOR)
@@ -181,7 +164,7 @@ class App(QMainWindow):
         for i in range(len(img[:])):
             for j in range(len(img[0])):
                 for r in range(len(img[0][0])):
-                    img[i][j][r] = LUT[img[i][j][r]][r]
+                    img[i][j][r] = self.LUT[img[i][j][r]][r]
 
         result_pic = QLabel()
         self.vbox3.addWidget(result_pic)
@@ -194,6 +177,13 @@ class App(QMainWindow):
 
         self.vbox3.addWidget(hist_plot)
 
+    def matchHistogram(self, input_cumulative, target_cumulative, color):
+
+        g_j = 0
+        for g_i in range(255):
+            while target_cumulative[g_j] < input_cumulative[g_i] and g_j < 255:
+                g_j += 1
+            self.LUT[g_i][color] = g_j
 
 
     def calcHistogram(self, I):
@@ -223,14 +213,14 @@ class PlotCanvas(FigureCanvas):
         self.plotHistogram(hist)
 
     def plotHistogram(self, hist):
-        ax1 = self.figure.add_subplot(511)
-        ax1.plot(hist[0], 'r-')
+        sub_red = self.figure.add_subplot(511)
+        sub_red.plot(hist[0], 'r-')
 
-        ax2 = self.figure.add_subplot(513)
-        ax2.plot(hist[1], 'g-')
+        sub_green = self.figure.add_subplot(513)
+        sub_green.plot(hist[1], 'g-')
 
-        ax3 = self.figure.add_subplot(515)
-        ax3.plot(hist[2], 'b-')
+        sub_blue = self.figure.add_subplot(515)
+        sub_blue.plot(hist[2], 'b-')
 
 
 if __name__ == '__main__':
